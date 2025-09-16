@@ -6,16 +6,17 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Checkbox } from '@/components/ui/checkbox';
 import { Upload, Download, Settings, CloudUpload } from 'lucide-react';
 import { ToolSidebar } from '@/components/tool-sidebar';
-import { PdfViewer } from '@/components/pdf-viewer';
-import { usePdf } from '@/hooks/use-pdf';
+import { DocumentViewer } from '@/components/document-viewer';
+import { useDocument } from '@/hooks/use-pdf';
 import { useAnnotations } from '@/hooks/use-annotations';
 import { PdfUtils } from '@/lib/pdf-utils';
+import { DocumentConverter } from '@/lib/document-converter';
 import { useToast } from '@/hooks/use-toast';
 import type { Settings as SettingsType } from '@/types/pdf';
 
 export default function PdfEditor() {
   const { toast } = useToast();
-  const { document, pdfProxy, loading, error, loadPdf, setCurrentPage, setZoom } = usePdf();
+  const { document, pdfProxy, loading, error, loadDocument, setCurrentPage, setZoom } = useDocument();
   const { annotations, currentTool, addAnnotation, updateAnnotation, setTool } = useAnnotations();
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<SettingsType>({
@@ -45,19 +46,19 @@ export default function PdfEditor() {
     }
 
     try {
-      await loadPdf(file);
+      await loadDocument(file);
       toast({
-        title: 'PDF uploaded successfully',
+        title: 'Document uploaded successfully',
         description: `Loaded ${file.name}`,
       });
     } catch (err) {
       toast({
         title: 'Upload failed',
-        description: err instanceof Error ? err.message : 'Failed to load PDF',
+        description: err instanceof Error ? err.message : 'Failed to load document',
         variant: 'destructive',
       });
     }
-  }, [loadPdf, toast]);
+  }, [loadDocument, toast]);
 
   const handleUploadClick = useCallback(() => {
     const input = window.document.createElement('input');
@@ -90,29 +91,20 @@ export default function PdfEditor() {
     [handleFileUpload]
   );
 
-  const handleDownload = useCallback(async () => {
+  const handleDownload = useCallback(async (format: 'original' | 'pdf' = 'original') => {
     if (!document) return;
 
     try {
-      const pdfBytes = await PdfUtils.exportPdfWithAnnotations(document.file, annotations);
-      const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-      const url = URL.createObjectURL(blob);
-      
-      const a = window.document.createElement('a');
-      a.href = url;
-      a.download = `edited_${document.file.name}`;
-      a.click();
-      
-      URL.revokeObjectURL(url);
+      await DocumentConverter.exportDocument(document, annotations, format);
       
       toast({
         title: 'Download complete',
-        description: 'Your edited PDF has been downloaded.',
+        description: `Your document has been exported as ${format === 'pdf' ? 'PDF' : 'original format'}.`,
       });
     } catch (err) {
       toast({
         title: 'Download failed',
-        description: err instanceof Error ? err.message : 'Failed to export PDF',
+        description: err instanceof Error ? err.message : 'Failed to export document',
         variant: 'destructive',
       });
     }
@@ -122,7 +114,7 @@ export default function PdfEditor() {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center space-y-4">
-          <h2 className="text-2xl font-semibold text-destructive">Error loading PDF</h2>
+          <h2 className="text-2xl font-semibold text-destructive">Error loading document</h2>
           <p className="text-muted-foreground">{error}</p>
           <Button onClick={() => window.location.reload()}>Try Again</Button>
         </div>
@@ -154,16 +146,31 @@ export default function PdfEditor() {
               <span>Upload Document</span>
             </Button>
             
-            <Button
-              variant="secondary"
-              onClick={handleDownload}
-              disabled={!document}
-              className="flex items-center space-x-2"
-              data-testid="download-button"
-            >
-              <Download className="w-4 h-4" />
-              <span>Download</span>
-            </Button>
+            <div className="flex items-center space-x-2">
+              <Button
+                variant="secondary"
+                onClick={() => handleDownload('original')}
+                disabled={!document}
+                className="flex items-center space-x-2"
+                data-testid="download-original-button"
+              >
+                <Download className="w-4 h-4" />
+                <span>Download Original</span>
+              </Button>
+              
+              {document && document.type !== 'pdf' && (
+                <Button
+                  variant="outline"
+                  onClick={() => handleDownload('pdf')}
+                  disabled={!document}
+                  className="flex items-center space-x-2"
+                  data-testid="download-pdf-button"
+                >
+                  <Download className="w-4 h-4" />
+                  <span>Convert to PDF</span>
+                </Button>
+              )}
+            </div>
             
             <Button
               variant="secondary"
@@ -182,11 +189,11 @@ export default function PdfEditor() {
             <div className="absolute inset-0 flex items-center justify-center">
               <div className="text-center space-y-2">
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-                <p className="text-muted-foreground">Loading PDF...</p>
+                <p className="text-muted-foreground">Loading document...</p>
               </div>
             </div>
-          ) : document && pdfProxy ? (
-            <PdfViewer
+          ) : document ? (
+            <DocumentViewer
               document={document}
               pdfProxy={pdfProxy}
               annotations={annotations}

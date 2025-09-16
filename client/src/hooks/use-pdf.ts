@@ -1,32 +1,53 @@
 import { useState, useCallback } from 'react';
-import type { PdfDocument } from '@/types/pdf';
+import type { Document, PdfDocument } from '@/types/pdf';
 import { PdfUtils } from '@/lib/pdf-utils';
 import type { PDFDocumentProxy } from 'pdfjs-dist';
 
-export function usePdf() {
-  const [document, setDocument] = useState<PdfDocument | null>(null);
+export function useDocument() {
+  const [document, setDocument] = useState<Document | null>(null);
   const [pdfProxy, setPdfProxy] = useState<PDFDocumentProxy | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const loadPdf = useCallback(async (file: File) => {
+  const loadDocument = useCallback(async (file: File) => {
     setLoading(true);
     setError(null);
     
     try {
-      const pdf = await PdfUtils.loadPdf(file);
-      const pdfDoc: PdfDocument = {
+      const fileExtension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+      let docType: Document['type'];
+      let pages = 1;
+      
+      // Determine document type and load accordingly
+      if (file.type.includes('pdf') || fileExtension === '.pdf') {
+        docType = 'pdf';
+        const pdf = await PdfUtils.loadPdf(file);
+        pages = pdf.numPages;
+        setPdfProxy(pdf);
+      } else if (fileExtension === '.docx') {
+        docType = 'docx';
+        setPdfProxy(null);
+      } else if (fileExtension === '.xlsx') {
+        docType = 'xlsx';
+        setPdfProxy(null);
+      } else if (fileExtension === '.pptx') {
+        docType = 'pptx';
+        setPdfProxy(null);
+      } else {
+        throw new Error('Unsupported file type');
+      }
+      
+      const doc: Document = {
         file,
-        type: 'pdf' as const,
-        pages: pdf.numPages,
+        type: docType,
+        pages,
         currentPage: 1,
         zoom: 1,
       };
       
-      setDocument(pdfDoc);
-      setPdfProxy(pdf);
+      setDocument(doc);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load PDF');
+      setError(err instanceof Error ? err.message : 'Failed to load document');
     } finally {
       setLoading(false);
     }
@@ -73,7 +94,7 @@ export function usePdf() {
     pdfProxy,
     loading,
     error,
-    loadPdf,
+    loadDocument,
     setCurrentPage,
     setZoom,
     nextPage,

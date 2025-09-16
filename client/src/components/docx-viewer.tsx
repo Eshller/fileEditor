@@ -39,7 +39,6 @@ export function DocxViewer({ document, onPageChange, onZoomChange }: DocxViewerP
           experimental: false,
           trimXmlDeclaration: true,
           useBase64URL: false,
-          showChanges: false,
           debug: false
         });
       } catch (err) {

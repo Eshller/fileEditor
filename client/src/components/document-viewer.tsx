@@ -41,7 +41,7 @@ export function DocumentViewer({
       
       return (
         <PdfViewer
-          document={document}
+          document={document as import('@/types/pdf').PdfDocument}
           pdfProxy={pdfProxy}
           annotations={annotations}
           currentTool={currentTool!}
