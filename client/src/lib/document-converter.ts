@@ -9,13 +9,14 @@ export class DocumentConverter {
   static async exportDocument(
     document: Document,
     annotations: Annotation[],
-    format: 'original' | 'pdf'
+    format: 'original' | 'pdf',
+    zoom: number = 1
   ): Promise<void> {
     try {
       if (format === 'original') {
-        await this.exportAsOriginalFormat(document, annotations);
+        await this.exportAsOriginalFormat(document, annotations, zoom);
       } else {
-        await this.exportAsPdf(document, annotations);
+        await this.exportAsPdf(document, annotations, zoom);
       }
     } catch (error) {
       console.error('Export error:', error);
@@ -25,23 +26,24 @@ export class DocumentConverter {
 
   private static async exportAsOriginalFormat(
     document: Document,
-    annotations: Annotation[]
+    annotations: Annotation[],
+    zoom: number = 1
   ): Promise<void> {
     switch (document.type) {
       case 'pdf':
-        const pdfBytes = await PdfUtils.exportPdfWithAnnotations(document.file, annotations);
+        const pdfBytes = await PdfUtils.exportPdfWithAnnotations(document.file, annotations, zoom);
         const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
         saveAs(pdfBlob, `edited_${document.file.name}`);
         break;
-        
+
       case 'xlsx':
         await this.exportXlsxAsOriginal(document);
         break;
-        
+
       case 'docx':
         await this.exportDocxAsOriginal(document);
         break;
-        
+
       case 'pptx':
         // For now, just download the original file
         saveAs(document.file, document.file.name);
@@ -51,24 +53,25 @@ export class DocumentConverter {
 
   private static async exportAsPdf(
     document: Document,
-    annotations: Annotation[]
+    annotations: Annotation[],
+    zoom: number = 1
   ): Promise<void> {
     switch (document.type) {
       case 'pdf':
         // Already PDF, export with annotations
-        const pdfBytes = await PdfUtils.exportPdfWithAnnotations(document.file, annotations);
+        const pdfBytes = await PdfUtils.exportPdfWithAnnotations(document.file, annotations, zoom);
         const pdfBlob = new Blob([pdfBytes], { type: 'application/pdf' });
         saveAs(pdfBlob, `${this.getFileNameWithoutExt(document.file.name)}.pdf`);
         break;
-        
+
       case 'xlsx':
         await this.convertXlsxToPdf(document);
         break;
-        
+
       case 'docx':
         await this.convertDocxToPdf(document);
         break;
-        
+
       case 'pptx':
         throw new Error('PowerPoint to PDF conversion is not yet supported');
     }
@@ -78,25 +81,25 @@ export class DocumentConverter {
     try {
       const arrayBuffer = await document.file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer);
-      
+
       // Create new workbook with the same data (for now, this just creates a copy)
       const newWorkbook = XLSX.utils.book_new();
-      
+
       workbook.SheetNames.forEach(sheetName => {
         const worksheet = workbook.Sheets[sheetName];
         XLSX.utils.book_append_sheet(newWorkbook, worksheet, sheetName);
       });
-      
+
       // Generate blob and download
-      const xlsxArrayBuffer = XLSX.write(newWorkbook, { 
-        bookType: 'xlsx', 
-        type: 'array' 
+      const xlsxArrayBuffer = XLSX.write(newWorkbook, {
+        bookType: 'xlsx',
+        type: 'array'
       });
-      
-      const blob = new Blob([xlsxArrayBuffer], { 
-        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' 
+
+      const blob = new Blob([xlsxArrayBuffer], {
+        type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
       });
-      
+
       saveAs(blob, `edited_${document.file.name}`);
     } catch (error) {
       console.error('XLSX export error:', error);
@@ -119,12 +122,12 @@ export class DocumentConverter {
     try {
       const arrayBuffer = await document.file.arrayBuffer();
       const workbook = XLSX.read(arrayBuffer);
-      
+
       // Convert first sheet to HTML table
       const firstSheetName = workbook.SheetNames[0];
       const worksheet = workbook.Sheets[firstSheetName];
       const htmlTable = XLSX.utils.sheet_to_html(worksheet);
-      
+
       // Create a properly formatted HTML document
       const htmlContent = `
         <!DOCTYPE html>
@@ -146,7 +149,7 @@ export class DocumentConverter {
         </body>
         </html>
       `;
-      
+
       // Convert HTML to PDF
       const options = {
         margin: [10, 10, 10, 10],
@@ -155,14 +158,14 @@ export class DocumentConverter {
         html2canvas: { scale: 2, useCORS: true },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'landscape' }
       };
-      
+
       const element = window.document.createElement('div');
       element.innerHTML = htmlContent;
       window.document.body.appendChild(element);
       element.style.display = 'none';
-      
+
       await html2pdf().set(options).from(element).save();
-      
+
       // Clean up
       window.document.body.removeChild(element);
     } catch (error) {
@@ -174,7 +177,7 @@ export class DocumentConverter {
   private static async convertDocxToPdf(document: Document): Promise<void> {
     try {
       const arrayBuffer = await document.file.arrayBuffer();
-      
+
       // Create a temporary container for rendering
       const container = window.document.createElement('div');
       container.style.cssText = `
@@ -187,7 +190,7 @@ export class DocumentConverter {
         font-family: Arial, sans-serif;
       `;
       window.document.body.appendChild(container);
-      
+
       // Render DOCX to HTML
       await renderAsync(arrayBuffer, container, undefined, {
         className: 'docx-content',
@@ -202,23 +205,23 @@ export class DocumentConverter {
         useBase64URL: false,
         debug: false
       });
-      
+
       // Convert to PDF
       const options = {
         margin: [10, 10, 10, 10],
         filename: `${this.getFileNameWithoutExt(document.file.name)}.pdf`,
         image: { type: 'jpeg', quality: 0.98 },
-        html2canvas: { 
-          scale: 2, 
+        html2canvas: {
+          scale: 2,
           useCORS: true,
           allowTaint: true,
           foreignObjectRendering: true
         },
         jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
       };
-      
+
       await html2pdf().set(options).from(container).save();
-      
+
       // Clean up
       window.document.body.removeChild(container);
     } catch (error) {

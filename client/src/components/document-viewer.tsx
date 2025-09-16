@@ -11,6 +11,7 @@ interface DocumentViewerProps {
   currentTool?: Tool;
   onAddAnnotation?: (annotation: Omit<Annotation, 'id'>) => void;
   onUpdateAnnotation?: (id: string, updates: Partial<Annotation>) => void;
+  onRemoveAnnotation?: (id: string) => void;
   onPageChange: (page: number) => void;
   onZoomChange: (zoom: number) => void;
 }
@@ -22,10 +23,11 @@ export function DocumentViewer({
   currentTool,
   onAddAnnotation,
   onUpdateAnnotation,
+  onRemoveAnnotation,
   onPageChange,
   onZoomChange,
 }: DocumentViewerProps) {
-  
+
   switch (document.type) {
     case 'pdf':
       if (!pdfProxy) {
@@ -38,7 +40,7 @@ export function DocumentViewer({
           </div>
         );
       }
-      
+
       return (
         <PdfViewer
           document={document as import('@/types/pdf').PdfDocument}
@@ -47,11 +49,12 @@ export function DocumentViewer({
           currentTool={currentTool!}
           onAddAnnotation={onAddAnnotation!}
           onUpdateAnnotation={onUpdateAnnotation!}
+          onRemoveAnnotation={onRemoveAnnotation!}
           onPageChange={onPageChange}
           onZoomChange={onZoomChange}
         />
       );
-      
+
     case 'docx':
       return (
         <DocxViewer
@@ -60,7 +63,7 @@ export function DocumentViewer({
           onZoomChange={onZoomChange}
         />
       );
-      
+
     case 'xlsx':
       return (
         <XlsxViewer
@@ -69,7 +72,7 @@ export function DocumentViewer({
           onZoomChange={onZoomChange}
         />
       );
-      
+
     case 'pptx':
       return (
         <div className="absolute inset-0 flex items-center justify-center">
@@ -81,7 +84,7 @@ export function DocumentViewer({
           </div>
         </div>
       );
-      
+
     default:
       return (
         <div className="absolute inset-0 flex items-center justify-center">

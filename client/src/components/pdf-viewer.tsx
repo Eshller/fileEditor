@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, useCallback } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from 'lucide-react';
@@ -14,6 +14,7 @@ interface PdfViewerProps {
   currentTool: Tool;
   onAddAnnotation: (annotation: Omit<Annotation, 'id'>) => void;
   onUpdateAnnotation: (id: string, updates: Partial<Annotation>) => void;
+  onRemoveAnnotation: (id: string) => void;
   onPageChange: (page: number) => void;
   onZoomChange: (zoom: number) => void;
 }
@@ -25,11 +26,33 @@ export function PdfViewer({
   currentTool,
   onAddAnnotation,
   onUpdateAnnotation,
+  onRemoveAnnotation,
   onPageChange,
   onZoomChange,
 }: PdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const [canvasSize, setCanvasSize] = useState({ width: 600, height: 800 });
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+  const [isZoomedIn, setIsZoomedIn] = useState(false);
+
+  // Check if we're zoomed in enough to need panning
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) return;
+
+    const containerRect = container.getBoundingClientRect();
+    const zoomedIn = canvasSize.width > containerRect.width || canvasSize.height > containerRect.height;
+    console.log('Zoom check - canvasSize:', canvasSize, 'containerRect:', containerRect, 'zoomedIn:', zoomedIn);
+    setIsZoomedIn(zoomedIn);
+
+    // Reset pan offset when not zoomed in
+    if (!zoomedIn) {
+      setPanOffset({ x: 0, y: 0 });
+    }
+  }, [canvasSize, document.zoom]);
 
   useEffect(() => {
     const renderCurrentPage = async () => {
@@ -74,32 +97,97 @@ export function PdfViewer({
     }
   };
 
+  // Panning event handlers
+  const handleMouseDown = useCallback((e: React.MouseEvent) => {
+    console.log('Mouse down - isZoomedIn:', isZoomedIn, 'currentTool:', currentTool.type);
+    if (!isZoomedIn) return;
+
+    // Allow panning with any tool when zoomed in
+    e.preventDefault();
+    e.stopPropagation();
+    setIsPanning(true);
+    setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+    console.log('Started panning');
+  }, [isZoomedIn, panOffset, currentTool.type]);
+
+  const handleMouseMove = useCallback((e: React.MouseEvent) => {
+    if (!isPanning || !isZoomedIn) return;
+
+    e.preventDefault();
+    e.stopPropagation();
+    const newOffset = {
+      x: e.clientX - panStart.x,
+      y: e.clientY - panStart.y,
+    };
+
+    // Constrain panning to keep content visible
+    const container = containerRef.current;
+    if (container) {
+      const containerRect = container.getBoundingClientRect();
+      const maxX = Math.max(0, canvasSize.width - containerRect.width);
+      const maxY = Math.max(0, canvasSize.height - containerRect.height);
+
+      newOffset.x = Math.max(-maxX, Math.min(0, newOffset.x));
+      newOffset.y = Math.max(-maxY, Math.min(0, newOffset.y));
+    }
+
+    setPanOffset(newOffset);
+  }, [isPanning, isZoomedIn, panStart, canvasSize]);
+
+  const handleMouseUp = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
+  const handleMouseLeave = useCallback(() => {
+    setIsPanning(false);
+  }, []);
+
   return (
     <div className="absolute inset-0 bg-muted p-6">
       <div className="h-full flex items-center justify-center">
         <div
-          className="pdf-canvas bg-white relative shadow-xl rounded-lg"
+          ref={containerRef}
+          className="pdf-container relative overflow-hidden shadow-xl rounded-lg bg-white"
           style={{
-            width: canvasSize.width,
-            height: canvasSize.height,
+            width: isZoomedIn ? '100%' : 'auto',
+            height: isZoomedIn ? '100%' : 'auto',
+            maxWidth: isZoomedIn ? '100%' : 'none',
+            maxHeight: isZoomedIn ? '100%' : 'none',
+            cursor: isZoomedIn ? (isPanning ? 'grabbing' : 'grab') : 'default',
           }}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseLeave}
         >
-          <canvas
-            ref={canvasRef}
-            className="block rounded-lg"
-            data-testid="pdf-canvas"
-          />
-          
-          <AnnotationLayer
-            annotations={annotations.filter(a => a.page === document.currentPage)}
-            currentTool={currentTool}
-            page={document.currentPage}
-            zoom={document.zoom}
-            onAddAnnotation={onAddAnnotation}
-            onUpdateAnnotation={onUpdateAnnotation}
-            width={canvasSize.width}
-            height={canvasSize.height}
-          />
+          <div
+            className="pdf-canvas bg-white relative"
+            style={{
+              width: canvasSize.width,
+              height: canvasSize.height,
+              transform: isZoomedIn ? `translate(${panOffset.x}px, ${panOffset.y}px)` : 'none',
+              transition: isPanning ? 'none' : 'transform 0.1s ease-out',
+            }}
+          >
+            <canvas
+              ref={canvasRef}
+              className="block rounded-lg"
+              data-testid="pdf-canvas"
+            />
+
+            <AnnotationLayer
+              annotations={annotations.filter(a => a.page === document.currentPage)}
+              currentTool={currentTool}
+              page={document.currentPage}
+              zoom={document.zoom}
+              panOffset={panOffset}
+              onAddAnnotation={onAddAnnotation}
+              onUpdateAnnotation={onUpdateAnnotation}
+              onRemoveAnnotation={onRemoveAnnotation}
+              width={canvasSize.width}
+              height={canvasSize.height}
+            />
+          </div>
         </div>
       </div>
 

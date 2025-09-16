@@ -17,7 +17,7 @@ import type { Settings as SettingsType } from '@/types/pdf';
 export default function PdfEditor() {
   const { toast } = useToast();
   const { document, pdfProxy, loading, error, loadDocument, setCurrentPage, setZoom } = useDocument();
-  const { annotations, currentTool, addAnnotation, updateAnnotation, setTool } = useAnnotations();
+  const { annotations, currentTool, addAnnotation, updateAnnotation, removeAnnotation, setTool } = useAnnotations();
   const [showSettings, setShowSettings] = useState(false);
   const [settings, setSettings] = useState<SettingsType>({
     defaultTool: 'select',
@@ -32,10 +32,10 @@ export default function PdfEditor() {
       'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
       'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
     ];
-    
+
     const supportedExtensions = ['.pdf', '.docx', '.xlsx', '.pptx'];
     const fileExtension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
-    
+
     if (!supportedTypes.includes(file.type) && !supportedExtensions.includes(fileExtension)) {
       toast({
         title: 'Invalid file type',
@@ -82,7 +82,7 @@ export default function PdfEditor() {
     (e: React.DragEvent) => {
       e.preventDefault();
       e.stopPropagation();
-      
+
       const file = e.dataTransfer.files[0];
       if (file) {
         handleFileUpload(file);
@@ -95,8 +95,8 @@ export default function PdfEditor() {
     if (!document) return;
 
     try {
-      await DocumentConverter.exportDocument(document, annotations, format);
-      
+      await DocumentConverter.exportDocument(document, annotations, format, document.zoom);
+
       toast({
         title: 'Download complete',
         description: `Your document has been exported as ${format === 'pdf' ? 'PDF' : 'original format'}.`,
@@ -125,7 +125,7 @@ export default function PdfEditor() {
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       <ToolSidebar currentTool={currentTool} onToolChange={setTool} />
-      
+
       <div className="flex-1 flex flex-col">
         {/* Header */}
         <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
@@ -135,7 +135,7 @@ export default function PdfEditor() {
               {document?.file.name || 'No file selected'}
             </div>
           </div>
-          
+
           <div className="flex items-center space-x-3">
             <Button
               onClick={handleUploadClick}
@@ -145,7 +145,7 @@ export default function PdfEditor() {
               <Upload className="w-4 h-4" />
               <span>Upload Document</span>
             </Button>
-            
+
             <div className="flex items-center space-x-2">
               <Button
                 variant="secondary"
@@ -157,7 +157,7 @@ export default function PdfEditor() {
                 <Download className="w-4 h-4" />
                 <span>Download Original</span>
               </Button>
-              
+
               {document && document.type !== 'pdf' && (
                 <Button
                   variant="outline"
@@ -171,7 +171,7 @@ export default function PdfEditor() {
                 </Button>
               )}
             </div>
-            
+
             <Button
               variant="secondary"
               size="icon"
@@ -200,6 +200,7 @@ export default function PdfEditor() {
               currentTool={currentTool}
               onAddAnnotation={addAnnotation}
               onUpdateAnnotation={updateAnnotation}
+              onRemoveAnnotation={removeAnnotation}
               onPageChange={setCurrentPage}
               onZoomChange={setZoom}
             />
@@ -236,7 +237,7 @@ export default function PdfEditor() {
           <DialogHeader>
             <DialogTitle>Settings</DialogTitle>
           </DialogHeader>
-          
+
           <div className="space-y-4">
             <div>
               <Label htmlFor="default-tool" className="text-sm font-medium">
@@ -259,7 +260,7 @@ export default function PdfEditor() {
                 </SelectContent>
               </Select>
             </div>
-            
+
             <div className="flex items-center space-x-2">
               <Checkbox
                 id="auto-save"
@@ -272,7 +273,7 @@ export default function PdfEditor() {
                 Save changes automatically
               </Label>
             </div>
-            
+
             <div>
               <Label htmlFor="export-quality" className="text-sm font-medium">
                 Export Quality
@@ -294,7 +295,7 @@ export default function PdfEditor() {
               </Select>
             </div>
           </div>
-          
+
           <div className="flex justify-end space-x-3 mt-6">
             <Button variant="secondary" onClick={() => setShowSettings(false)}>
               Cancel

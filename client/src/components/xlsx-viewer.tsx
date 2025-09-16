@@ -20,15 +20,22 @@ export function XlsxViewer({ document, onPageChange, onZoomChange }: XlsxViewerP
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    let isMounted = true;
+
     const loadWorkbook = async () => {
+      if (!document?.file || !isMounted) return;
+
       setIsLoading(true);
       setError(null);
-      
+
       try {
         const arrayBuffer = await document.file.arrayBuffer();
         const wb = XLSX.read(arrayBuffer);
+
+        if (!isMounted) return;
+
         setWorkbook(wb);
-        
+
         // Set first sheet as default
         if (wb.SheetNames.length > 0) {
           const firstSheet = wb.SheetNames[0];
@@ -38,19 +45,28 @@ export function XlsxViewer({ document, onPageChange, onZoomChange }: XlsxViewerP
           setSheetData(data as any[][]);
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to load XLSX');
-        console.error('XLSX loading error:', err);
+        if (isMounted) {
+          setError(err instanceof Error ? err.message : 'Failed to load XLSX');
+          console.error('XLSX loading error:', err);
+        }
       } finally {
-        setIsLoading(false);
+        if (isMounted) {
+          setIsLoading(false);
+        }
       }
     };
 
     loadWorkbook();
+
+    // Cleanup function to prevent memory leaks and race conditions
+    return () => {
+      isMounted = false;
+    };
   }, [document]);
 
   const handleSheetChange = (sheetName: string) => {
     if (!workbook || !workbook.Sheets[sheetName]) return;
-    
+
     setCurrentSheet(sheetName);
     const worksheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(worksheet, { header: 1, defval: '' });
@@ -122,7 +138,7 @@ export function XlsxViewer({ document, onPageChange, onZoomChange }: XlsxViewerP
         )}
 
         {/* Spreadsheet Content */}
-        <div 
+        <div
           className="flex-1 bg-white rounded-lg shadow-xl overflow-auto"
           style={{
             transform: `scale(${document.zoom})`,

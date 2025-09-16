@@ -153,3 +153,146 @@
   background: rgba(255, 255, 255, 0.95);
   border: 1px solid hsl(214.3 31.8% 91.4%);
 }
+
+/* DOCX Viewer Styles */
+.docx-container {
+  width: 100% !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+  font-family: 'Times New Roman', serif !important;
+  line-height: 1.6 !important;
+  color: #000 !important;
+  background: white !important;
+  padding: 20px !important;
+  box-sizing: border-box !important;
+  display: block !important;
+  position: relative !important;
+  z-index: 1 !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* DOCX wrapper styles */
+.docx-container-wrapper {
+  background: white !important;
+  padding: 0 !important;
+  display: block !important;
+  align-items: flex-start !important;
+  width: 100% !important;
+  min-height: 100% !important;
+  overflow: visible !important;
+}
+
+.docx-container-wrapper>section.docx-container {
+  background: white !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  width: 100% !important;
+  min-height: 100% !important;
+  display: block !important;
+  position: relative !important;
+  overflow: visible !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 1 !important;
+  padding: 20px !important;
+  color: #000 !important;
+}
+
+/* Target the actual content section directly */
+section.docx-container {
+  background: white !important;
+  box-shadow: none !important;
+  margin: 0 !important;
+  width: 100% !important;
+  min-height: 100% !important;
+  display: block !important;
+  position: relative !important;
+  overflow: visible !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  z-index: 1 !important;
+  padding: 20px !important;
+  color: #000 !important;
+}
+
+.docx-content {
+  width: 100% !important;
+  min-height: 100% !important;
+  background: white !important;
+  color: #000 !important;
+  display: block !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
+
+/* Ensure DOCX content is visible */
+.docx-container * {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+.docx-container p {
+  margin: 0 0 1em 0 !important;
+  padding: 0 !important;
+  display: block !important;
+  color: #000 !important;
+}
+
+.docx-container table {
+  border-collapse: collapse !important;
+  width: 100% !important;
+  margin: 1em 0 !important;
+  display: table !important;
+  color: #000 !important;
+}
+
+.docx-container td,
+.docx-container th {
+  border: 1px solid #ddd !important;
+  padding: 8px !important;
+  text-align: left !important;
+  display: table-cell !important;
+  color: #000 !important;
+}
+
+.docx-container img {
+  max-width: 100% !important;
+  height: auto !important;
+  display: block !important;
+}
+
+/* Force visibility for all DOCX elements */
+.docx-container div,
+.docx-container span,
+.docx-container p,
+.docx-container h1,
+.docx-container h2,
+.docx-container h3,
+.docx-container h4,
+.docx-container h5,
+.docx-container h6 {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  color: #000 !important;
+  background: transparent !important;
+}
+
+/* Ensure text is visible */
+.docx-container span,
+.docx-container div {
+  color: #000 !important;
+  background: transparent !important;
+}
+
+/* Fix any hidden content */
+.docx-container *[style*="display: none"],
+.docx-container *[style*="visibility: hidden"],
+.docx-container *[style*="opacity: 0"] {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
