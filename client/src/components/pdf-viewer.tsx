@@ -80,8 +80,8 @@ export function PdfViewer({
         <div
           className="pdf-canvas bg-white relative shadow-xl rounded-lg"
           style={{
-            width: canvasSize.width * document.zoom,
-            height: canvasSize.height * document.zoom,
+            width: canvasSize.width,
+            height: canvasSize.height,
           }}
         >
           <canvas
