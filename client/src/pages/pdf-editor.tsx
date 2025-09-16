@@ -25,10 +25,20 @@ export default function PdfEditor() {
   });
 
   const handleFileUpload = useCallback(async (file: File) => {
-    if (!file.type.includes('pdf')) {
+    const supportedTypes = [
+      'application/pdf',
+      'application/vnd.openxmlformats-officedocument.wordprocessingml.document', // .docx
+      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', // .xlsx
+      'application/vnd.openxmlformats-officedocument.presentationml.presentation', // .pptx
+    ];
+    
+    const supportedExtensions = ['.pdf', '.docx', '.xlsx', '.pptx'];
+    const fileExtension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+    
+    if (!supportedTypes.includes(file.type) && !supportedExtensions.includes(fileExtension)) {
       toast({
         title: 'Invalid file type',
-        description: 'Please select a PDF file.',
+        description: 'Please select a PDF, DOCX, XLSX, or PPTX file.',
         variant: 'destructive',
       });
       return;
@@ -52,7 +62,7 @@ export default function PdfEditor() {
   const handleUploadClick = useCallback(() => {
     const input = window.document.createElement('input');
     input.type = 'file';
-    input.accept = '.pdf';
+    input.accept = '.pdf,.docx,.xlsx,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.openxmlformats-officedocument.presentationml.presentation';
     input.onchange = (e: Event) => {
       const file = (e.target as HTMLInputElement).files?.[0];
       if (file) {
@@ -128,7 +138,7 @@ export default function PdfEditor() {
         {/* Header */}
         <header className="h-16 bg-card border-b border-border flex items-center justify-between px-6">
           <div className="flex items-center space-x-4">
-            <h1 className="text-lg font-semibold text-foreground">PDF Editor</h1>
+            <h1 className="text-lg font-semibold text-foreground">Document Editor</h1>
             <div className="text-sm text-muted-foreground" data-testid="file-name">
               {document?.file.name || 'No file selected'}
             </div>
@@ -141,7 +151,7 @@ export default function PdfEditor() {
               data-testid="upload-button"
             >
               <Upload className="w-4 h-4" />
-              <span>Upload PDF</span>
+              <span>Upload Document</span>
             </Button>
             
             <Button
@@ -197,14 +207,15 @@ export default function PdfEditor() {
                 <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
                   <CloudUpload className="w-8 h-8 text-primary" />
                 </div>
-                <h3 className="text-xl font-semibold text-foreground">Upload your PDF</h3>
+                <h3 className="text-xl font-semibold text-foreground">Upload your document</h3>
                 <p className="text-muted-foreground max-w-sm">
-                  Drag and drop your PDF file here, or click the upload button to select a file from your device.
+                  Drag and drop your document here, or click the upload button to select a file from your device.
                 </p>
                 <div className="space-y-2 text-sm text-muted-foreground">
-                  <div>• Supports PDF files up to 50MB</div>
+                  <div>• Supports PDF, DOCX, XLSX, PPTX files up to 50MB</div>
                   <div>• All editing happens in your browser</div>
                   <div>• No files are uploaded to servers</div>
+                  <div>• Export as PDF or original format</div>
                 </div>
               </div>
             </div>

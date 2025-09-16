@@ -1,8 +1,13 @@
-export interface PdfDocument {
+export interface Document {
   file: File;
+  type: 'pdf' | 'docx' | 'xlsx' | 'pptx';
   pages: number;
   currentPage: number;
   zoom: number;
+}
+
+export interface PdfDocument extends Document {
+  type: 'pdf';
 }
 
 export interface Annotation {

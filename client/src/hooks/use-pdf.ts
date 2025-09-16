@@ -17,6 +17,7 @@ export function usePdf() {
       const pdf = await PdfUtils.loadPdf(file);
       const pdfDoc: PdfDocument = {
         file,
+        type: 'pdf' as const,
         pages: pdf.numPages,
         currentPage: 1,
         zoom: 1,
