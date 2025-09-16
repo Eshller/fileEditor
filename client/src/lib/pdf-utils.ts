@@ -3,7 +3,7 @@ import { PDFDocument, rgb } from 'pdf-lib';
 import type { Annotation } from '@/types/pdf';
 
 // Configure PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdn.jsdelivr.net/npm/pdfjs-dist@5.4.149/build/pdf.worker.min.mjs`;
 
 export class PdfUtils {
   static async loadPdf(file: File): Promise<pdfjsLib.PDFDocumentProxy> {
